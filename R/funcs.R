@@ -97,16 +97,16 @@ simulate_dose_response_data <- function(
 
   # Generate response values
   if (type == "inhibition") {
-    response <- top / (1 + (dose/ec50)^h)
+    signal <- top / (1 + (dose/ec50)^h)
   } else { # stimulation
-    response <- bottom + (top - bottom) * (dose^h / (ec50^h + dose^h))
+    signal <- bottom + (top - bottom) * (dose^h / (ec50^h + dose^h))
   }
 
   # Add random noise
-  response <- response + rnorm(n, mean = 0, sd = noiseLevel * top)
+  response <- signal + rnorm(n, mean = 0, sd = noiseLevel * top)
 
   # Return a data frame
-  return(data.frame(dose = dose, response = response))
+  return(data.frame(dose = dose, response = response, signal = signal))
 }
 
 ## Analysis by "drc" R package - (under development)

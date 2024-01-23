@@ -32,7 +32,7 @@ def plot_dose_response_with_fit_py(dose, response, fitted_response, title="Dose-
     plt.ylabel("Response")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    # plt.show()
     
 def simulate_dose_response(
   n=100, response_type='inhibition', ec50=50, hill_coeff=1, 

@@ -109,10 +109,16 @@ fitted_response = calculate_fitted_response(dose, fit_py)
 ```
 
 ```{r r-plot_inhi, fig.show='hold', message = F}
-plot_dose_response_with_fit(inhibition_data, coef = fit)
+plot_inhi_r <- plot_dose_response_with_fit(inhibition_data, coef = fit)
+png("inhibition_r.png", width = 800, height = 600)
+plot_inhi_r
+dev.off()
 ```
 
 ```{python py-plot_inhi, fig.show='hold'}
+plot_dose_response_with_fit_py(dose, response, fitted_response, title="Inhibited Dose-Response Curve")
+plt.savefig('plot_inhi_py.png')
+plt.close()
 plot_dose_response_with_fit_py(dose, response, fitted_response, title="Inhibited Dose-Response Curve")
 ```
 
@@ -146,10 +152,16 @@ fitted_response = calculate_fitted_response(dose, fit_py)
 ```
 
 ```{r r-plot, fig.show='hold', message = F}
-plot_dose_response_with_fit(stimulation_data, coef = fit_r)
+plot_stim_r <- plot_dose_response_with_fit(stimulation_data, coef = fit_r, color = "red")
+png("stimulation_r.png", width = 800, height = 600)
+plot_stim_r
+dev.off()
 ```
 
 ```{python py-plot, fig.show='hold', echo = F}
+plot_dose_response_with_fit_py(dose, response, fitted_response, title="Simulated Dose-Response Curve", color = "red")
+plt.savefig('plot_stim_py.png')
+plt.close()
 plot_dose_response_with_fit_py(dose, response, fitted_response, title="Simulated Dose-Response Curve", color = "red")
 ```
 
@@ -161,7 +173,6 @@ coeff_estimate <- data.frame(
 
 knitr::kable(coeff_estimate, caption = "Parameter Estimates from R and Python (Stimulation)")
 ```
-
 
 ```{python, message = F, message = F}
 # dose, response = simulate_dose_response(response_type='inhibition')

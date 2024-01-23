@@ -1,4 +1,14 @@
 .Rproj.user
 references/
 .Rhistory
-./.Rhistory
+inst/rmd/.Rhistory
+.png
+/inst/rmd/*.png
+
+.html
+/inst/rmd/*.html
+
+.DS_Store
+.pdf
+/inst/rmd/*.pdf
+inst/.DS_Store

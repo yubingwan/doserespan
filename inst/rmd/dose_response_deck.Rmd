@@ -1,9 +1,11 @@
 ---
 title: "Take-Home Assignment"
-subtitle: "Dose Response Analysis" 
 author: "Yubing Wan, Ph.D."
 date: "2024-01-20"
-output: ioslides_presentation
+output:
+  beamer_presentation: default
+  ioslides_presentation: default
+subtitle: Dose Response Analysis
 ---
 
 ```{r setup, include=FALSE}
@@ -12,9 +14,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Introduction 
 - Four Parameter Logistic (4PL) Regression Model 
-- Computing Programs 
+- Demo Cases 
+- Simulation of Realistic Datasets 
+- Computing Software
   - R 
   - Python 
+- Discussion 
+- Further Improvements
 
 ## Equation and Parameters of the 4PL Model
 
@@ -26,13 +32,30 @@ $$
 \end{aligned}
 $$
 
-## Parameter Estimation and Curve Fitting in R 
+## Parameter Estimation and Curve Fitting in R and Other Softwares
+
+1. R Packages for Dose-Response Analysis:
+   - drc: A variety of models for dose-response analysis, 3PL, 4PL, 5PL models. 
+   - nlme: Nonlinear mixed-effects models, dose-response contexts with grouped data. 
+   - minpack.lm: Complex curve fitting in dose-response analysis.
+
+2. General Curve Fitting and Parameter Estimation in R:
+   - **nls**: The base R function for non-linear least squares fitting. 
+   - nls2: Enhances the capabilities of R's base nls function.
+
+3. Other Software Tools for Dose-Response Analysis:
+   - Prism (GraphPad): A widely used tool in biostatistics for curve fitting and dose-response analysis, user-friendly interface.
+   - SigmaPlot: Offers extensive options for curve fitting, in scientific research for dose-response analysis.
+   - Python: libraries **SciPy** and NumPy, parameter estimation and curve fitting, integrated with R.
+
+## Demo Cases
 
 ```{r, results = 'hide', message = FALSE}
 if (!require("tidyverse", character.only = TRUE)) {
     install.packages("tidyverse", dependencies = TRUE)
     library("tidyverse", character.only = TRUE)
 }
+library("knitr")
 
 theme_set(theme_bw())
 source(file.path(str_remove(getwd(), "/inst/rmd"), "R/funcs.R"))
@@ -52,10 +75,14 @@ data_demo_inhi <- data.frame(
 ```{r, results = 'hide'}
 m1 <- fit_4pl_model(data_demo_inhi)
 m2 <- fit_4pl_model(data_demo_inhi, constr_top = 35, algorithm = "port")
+m3 <- fit_4pl_model(data_demo_inhi, constr_h = -0.2, algorithm = "port")
+m4 <- fit_4pl_model(data_demo_inhi, constr_h = -1.5, algorithm = "port")
 
-par(mfrow = c(1, 2))
+par(mfrow = c(2, 2))
 plot_dose_response_curve(m1, data_demo_inhi, main = "Without Constriaints")
 plot_dose_response_curve(m2, data_demo_inhi, main = "With Top Constriaint")
+plot_dose_response_curve(m3, data_demo_inhi, main = "With Hill Constriaint (Heavy)")
+plot_dose_response_curve(m4, data_demo_inhi, main = "With Hill Constriaint (Light)")
 ```
 
 ## 
@@ -76,103 +103,112 @@ plot_dose_response_curve(m4, data_demo_stim, main = "Both Constriaints")
 
 ## Simulation of Realistic Datasets 
 
-## Inhibition
-```{r}
-set.seed(123) # For reproducibility
-inhibition_data <- simulate_dose_response_data(type = "inhibition")
-plot(inhibition_data$dose, inhibition_data$response, col = "blue", main = "Simulated Inhibition Data")
-fit <- fit_4pl_model(inhibition_data, log50_0 = log10(50), h_0=1, top_0 = 100)
-y <- fit$bottom + (fit$top - fit$bottom)/(1 + 10^((fit$logEC50 - log10(inhibition_data$dose)) * fit$h)) # Y data
-lines(inhibition_data$dose, y, col="blue", lwd=2) # plot the curve
+```{r, echo = T}
+simulate_dose_response_data <- function(
+    n = 100, type = c("inhibition", "stimulation"),
+    ec50 = 50, h = 1, top = 100, bottom = 0,
+    noiseLevel = 0.05) {
+  type <- match.arg(type)
+  # Generate dose values (log-scale can be more realistic for certain scenarios)
+  dose <- seq(from = bottom, to = top, length.out = n)
+  # Generate response values
+  if (type == "inhibition") {
+    signal <- top / (1 + (dose/ec50)^h)
+  } else { # stimulation
+    signal <- bottom + (top - bottom) * 
+      (dose^h / (ec50^h + dose^h))}
+
+  response <- signal + rnorm(
+    n, mean = 0, sd = noiseLevel * top)
+  return(data.frame(
+    dose = dose, response = response, signal = signal))
+}
 ```
 
-## Stimulation
-```{r}
+## Parameter Estimates and Data Summary (Inhibition)
+
+```{r, message = F}
+set.seed(123) # For reproducibility
+inhibition_data <- simulate_dose_response_data(type = "inhibition")
+source_python(file.path(str_remove(getwd(), "/inst/rmd"), "script/funcs.py"))
+py$dose <- inhibition_data$dose
+py$response <- inhibition_data$response
+fit <- fit_4pl_model(inhibition_data, ec50 = 50, h=1, top = 100)
+```
+
+```{python, message = F, results='hide'}
+fit_py = fit_4pl_model_py(dose, response)
+fitted_response = calculate_fitted_response(dose, fit_py)
+```
+
+```{r, echo = F}
+r.fit_py <- py$fit_py
+coeff_estimate <- data.frame(
+  Estimates_R = c(fit[[1]], fit[[2]], fit[[3]], fit[[4]]),
+  Estimates_Python = r.fit_py)
+
+knitr::kable(coeff_estimate) # , caption = "Parameter Estimates from R and Python (Inhibition)"
+
+kable(summary(inhibition_data))
+```
+
+## Inhibition
+
+```{r, echo=FALSE, out.width='50%'}
+knitr::include_graphics("inhibition_r.png")
+knitr::include_graphics("plot_inhi_py.png")
+```
+
+## Parameter Estimates and Data Summary (Stimulation)
+
+```{r, message = F}
 stimulation_data <- simulate_dose_response_data(type = "stimulation")
 # fit_drm <- dose_response_analysis(stimulation_data, response_type = "stimulation", constrained = T)
 # fit_drm$coefficients
-# par(mfrow = c(2, 1))
-# plot(fit_stimulation, main = "crd")
-plot(stimulation_data$dose, stimulation_data$response, col = "red", main = "Simulated Stimulation Data")
-fit <- fit_4pl_model(stimulation_data, log50_0 = log10(50), h_0=1, top_0 = 100)
-y <- fit$bottom + (fit$top - fit$bottom)/(1 + 10^((fit$logEC50 - log10(inhibition_data$dose)) * fit$h)) # Y data
-lines(stimulation_data$dose, y, col="red", lwd=2) # plot the curve
+fit_r <- fit_4pl_model(stimulation_data, ec50 = 50, h=1, top = 100)
+py$dose <- stimulation_data$dose
+py$response <- stimulation_data$response
 ```
 
-
-## Cross-Software Validation 
-
-- Parameter Estimation and Curve Fitting in Python 
-
-```{python}
-import subprocess
-import pkg_resources
-required_packages = ["numpy", "scipy", "matplotlib"] 
-installed_packages = {pkg.key for pkg in pkg_resources.working_set}
-missing_packages = [pkg for pkg in required_packages if pkg not in installed_packages]
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
-if missing_packages:
-    subprocess.check_call(["python", "-m", "pip", "install", *missing_packages])
-
-
-def four_parameter_logistic(x, top, bottom, ec50, hill_slope):
-    return bottom + (top - bottom) / (1 + (x / ec50)**(-hill_slope))
-
-def fit_4pl_model(x_data, y_data, initial_guess=(100, 0, 50, 1)):
-    popt, _ = curve_fit(four_parameter_logistic, x_data, y_data, p0=initial_guess, maxfev=10000)
-    return popt
-  
-def calculate_fitted_response(dose, popt):
-    top, bottom, ec50, hill_slope = popt
-    fitted_response = four_parameter_logistic(dose, top, bottom, ec50, hill_slope)
-    return fitted_response
-
-def simulate_dose_response(n=100, response_type='inhibition', ec50=50, 
-                           hill_coeff=1, max_response=100, min_response=0, noise_level=0.05):
-    dose = np.linspace(min_response, max_response, n)
-
-    if response_type == 'inhibition':
-        response = max_response / (1 + (dose/ec50)**hill_coeff)
-    elif response_type == 'stimulation':
-        response = min_response + (max_response - min_response) * (dose**hill_coeff / (ec50**hill_coeff + dose**hill_coeff))
-    else:
-        raise ValueError("response_type must be 'inhibition' or 'stimulation'")
-
-    # Add random noise to simulate experimental variability
-    response += np.random.normal(0, noise_level * max_response, n)
-
-    return dose, response
-    
-def plot_dose_response_with_fit(dose, response, fitted_response, title="Dose-Response Curve", color = "blue"):
-    plt.figure(figsize=(8, 5))
-    plt.scatter(dose, response, color=color, label='Observed Data')  # Plot observed data points
-    plt.plot(dose, fitted_response, color=color, label='Fitted Curve')  # Plot fitted curve
-    plt.title(title)
-    plt.xlabel("Dose")
-    plt.ylabel("Response")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+```{python, message = F, results='hide'}
+fit_py = fit_4pl_model_py(dose, response)
+fitted_response = calculate_fitted_response(dose, fit_py)
 ```
 
-## Inhibition 
+```{r, echo = F}
+r.fit_py <- py$fit_py
+coeff_estimate <- data.frame(
+  Estimates_R = c(fit_r[[1]], fit_r[[2]], fit_r[[3]], fit_r[[4]]),
+  Estimates_Python = r.fit_py)
 
-```{python, message = F, results = "hide"}
-dose, response = simulate_dose_response(response_type='inhibition')
-popt = fit_4pl_model(dose, response)
-fitted_response = calculate_fitted_response(dose, popt)
-plot_dose_response_with_fit(dose, response, fitted_response, title="Inhibited Dose-Response Curve")
+knitr::kable(coeff_estimate) #, caption = "Parameter Estimates from R and Python (Stimulation)"
+kable(summary(stimulation_data))
 ```
 
 ## Stimulation
-```{python} 
-dose, response = simulate_dose_response(response_type='stimulation')
-popt = fit_4pl_model(dose, response)
-fitted_response = calculate_fitted_response(dose, popt)
-plot_dose_response_with_fit(dose, response, fitted_response, title="Simulated Dose-Response Curve", color = "red")
+
+```{r, echo=FALSE, out.width='50%'}
+knitr::include_graphics("stimulation_r.png")
+knitr::include_graphics("plot_stim_py.png")
 ```
 
 ## Discussion 
+
+- Observed very slight difference in parameter estimates for the same simulated data in R and Python. 
+  - Numerical Precision and Computation 
+  - Precision of floating-point arithmetic 
+  - Default settings for these algorithms
+  - Initial parameter values 
+  - Version of libraries
+  - Numerical stability and scale of data
+
+## Further Improvements 
+
+- CHECK: Standardize pre-processing steps for your data.
+- CHECK: Use the same initial parameter values for the models in both R and Python.
+- TODO: Explore and align the optimization algorithms and their settings between R and Python.
+- TODO: Check for updates or differences in the libraries' versions used for analysis.
+
+## 
+
+Thank You! 
