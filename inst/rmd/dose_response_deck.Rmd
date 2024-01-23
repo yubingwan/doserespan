@@ -34,21 +34,6 @@ if (!require("tidyverse", character.only = TRUE)) {
     library("tidyverse", character.only = TRUE)
 }
 
-if (!require("drc", character.only = TRUE)) {
-    install.packages("drc", dependencies = TRUE)
-    library("drc", character.only = TRUE)
-}
-
-if (!require("broom", character.only = TRUE)) {
-    install.packages("broom", dependencies = TRUE)
-    library("broom", character.only = TRUE)
-}
-
-if (!require("reticulate", character.only = TRUE)) {
-    install.packages("reticulate", dependencies = TRUE)
-    library("reticulate", character.only = TRUE)
-}
-
 theme_set(theme_bw())
 source(file.path(str_remove(getwd(), "/inst/rmd"), "R/funcs.R"))
 
@@ -189,6 +174,5 @@ popt = fit_4pl_model(dose, response)
 fitted_response = calculate_fitted_response(dose, popt)
 plot_dose_response_with_fit(dose, response, fitted_response, title="Simulated Dose-Response Curve", color = "red")
 ```
-
 
 ## Discussion 
