@@ -1,5 +1,6 @@
 ---
-title: "Take-Home Assignment"
+title: "Dose Response Analysis"
+subtitle: "Cross programming in R and Python"
 author: "Yubing Wan, Ph.D."
 date: "2024-01-20"
 output:
