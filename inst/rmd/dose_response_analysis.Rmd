@@ -1,6 +1,6 @@
 ---
-title: "Take-Home Assignment"
-subtitle: "Dose Response Analysis"
+title: "Dose Response Analysis"
+subtitle: "Cross programming in R and Python"
 author: "Yubing Wan, Ph.D."
 date: "`r format(Sys.Date(), format='%d %b %Y')`"
 output: html_document
